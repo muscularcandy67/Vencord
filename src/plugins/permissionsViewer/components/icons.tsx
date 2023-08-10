@@ -16,6 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+export const enum PermissionState {
+    Deny = "deny",
+    Default = "default",
+    Allow = "allow",
+}
+
 export function PermissionDeniedIcon() {
     return (
         <svg
@@ -25,19 +31,6 @@ export function PermissionDeniedIcon() {
         >
             <title>Denied</title>
             <path fill="var(--status-danger)" d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z" />
-        </svg>
-    );
-}
-
-export function PermissionAllowedIcon() {
-    return (
-        <svg
-            height="24"
-            width="24"
-            viewBox="0 0 24 24"
-        >
-            <title>Allowed</title>
-            <path fill="var(--text-positive)" d="M8.99991 16.17L4.82991 12L3.40991 13.41L8.99991 19L20.9999 7.00003L19.5899 5.59003L8.99991 16.17ZZ" />
         </svg>
     );
 }
@@ -55,4 +48,25 @@ export function PermissionDefaultIcon() {
             </g>
         </svg>
     );
+}
+
+export function PermissionAllowedIcon() {
+    return (
+        <svg
+            height="24"
+            width="24"
+            viewBox="0 0 24 24"
+        >
+            <title>Allowed</title>
+            <path fill="var(--text-positive)" d="M8.99991 16.17L4.82991 12L3.40991 13.41L8.99991 19L20.9999 7.00003L19.5899 5.59003L8.99991 16.17ZZ" />
+        </svg>
+    );
+}
+
+export function PermissionIcon({ permissionState }: { permissionState: PermissionState; }) {
+    switch (permissionState) {
+        case PermissionState.Deny: return PermissionDeniedIcon();
+        case PermissionState.Allow: return PermissionAllowedIcon();
+        case PermissionState.Default: return PermissionDefaultIcon();
+    }
 }
