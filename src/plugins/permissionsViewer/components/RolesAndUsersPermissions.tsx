@@ -26,7 +26,7 @@ import type { Guild } from "discord-types/general";
 
 import { settings } from "..";
 import { cl, getPermissionDescription, getPermissionString } from "../utils";
-import { PermissionAllowedIcon, PermissionDefaultIcon, PermissionDeniedIcon } from "./icons";
+import { PermissionIcon, PermissionState } from "./icons";
 
 export const enum PermissionType {
     Role = 0,
@@ -156,32 +156,33 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                             })}
                         </ScrollerThin>
                         <ScrollerThin className={cl("perms-perms")}>
-                            {Object.entries(PermissionsBits).map(([permissionName, bit]) => (
-                                <div className={cl("perms-perms-item")}>
-                                    <div className={cl("perms-perms-item-icon")}>
-                                        {(() => {
-                                            const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
+                            {Object.entries(PermissionsBits).map(([permissionName, bit]) => {
+                                const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
+                                const permissionState = permissions !== undefined
+                                    ? permissions === 0n ? PermissionState.Default
+                                        : (permissions & bit) === bit ? PermissionState.Allow : PermissionState.Deny
+                                    : undefined;
+                                const permissionOverwriteState = overwriteAllow !== undefined || overwriteDeny !== undefined
+                                    ? overwriteAllow !== undefined && (overwriteAllow & bit) === bit ? PermissionState.Allow
+                                        : overwriteDeny !== undefined && (overwriteDeny & bit) === bit ? PermissionState.Deny
+                                            : PermissionState.Default
+                                    : undefined;
+                                const computedPermissionState = permissionOverwriteState ?? permissionState ?? PermissionState.Default;
 
-                                            if (permissions)
-                                                return (permissions & bit) === bit
-                                                    ? PermissionAllowedIcon()
-                                                    : PermissionDeniedIcon();
-
-                                            if (overwriteAllow && (overwriteAllow & bit) === bit)
-                                                return PermissionAllowedIcon();
-                                            if (overwriteDeny && (overwriteDeny & bit) === bit)
-                                                return PermissionDeniedIcon();
-
-                                            return PermissionDefaultIcon();
-                                        })()}
-                                    </div>
+                                return (<div className={cl("perms-perms-item")}
+                                    data-vc-permviewer-permission-state={permissionState}
+                                    data-vc-permviewer-permission-overwrite-state={permissionOverwriteState}
+                                >
+                                    <div className={cl("perms-perms-item-icon")}><PermissionIcon
+                                        permissionState={computedPermissionState}
+                                    /></div>
                                     <Text variant="text-md/normal">{getPermissionString(permissionName)}</Text>
 
-                                    <Tooltip text={getPermissionDescription(permissionName) || "No Description"}>
-                                        {props => <InfoIcon {...props} />}
-                                    </Tooltip>
-                                </div>
-                            ))}
+                                    <Tooltip text={getPermissionDescription(permissionName) || "No Description"}>{props =>
+                                        <InfoIcon {...props} />
+                                    }</Tooltip>
+                                </div>);
+                            })}
                         </ScrollerThin>
                     </div>
                 )}
