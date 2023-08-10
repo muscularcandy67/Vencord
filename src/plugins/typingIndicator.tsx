@@ -22,13 +22,11 @@ import { Devs } from "@utils/constants";
 import { LazyComponent } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { find, findLazy, findStoreLazy } from "@webpack";
-import { ChannelStore, GuildMemberStore, RelationshipStore, Tooltip, UserStore, useStateFromStores } from "@webpack/common";
+import { ChannelStore, GuildMemberStore, RelationshipStore, Tooltip, TypingStore, UserStore, useStateFromStores } from "@webpack/common";
 
 import { buildSeveralUsers } from "./typingTweaks";
 
 const ThreeDots = LazyComponent(() => find(m => m.type?.render?.toString()?.includes("().dots")));
-
-const TypingStore = findStoreLazy("TypingStore");
 const UserGuildSettingsStore = findStoreLazy("UserGuildSettingsStore");
 
 const Formatters = findLazy(m => m.Messages?.SEVERAL_USERS_TYPING);
