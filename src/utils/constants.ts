@@ -339,10 +339,6 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "arrow",
         id: 958158495302176778n
     },
-    Arrow: {
-        name: "arrow",
-        id: 958158495302176778n
-    },
     Lumap: {
         name: "lumap",
         id: 635383782576357407n
@@ -362,6 +358,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     MyNameIsJeff: {
         name: "My-Name-Is-Jeff",
         id: 150427554166210560n
+    },
+    Rini: {
+        name: "Rini",
+        id: 1079479184478441643n
     }
 } satisfies Record<string, Dev>);
 
