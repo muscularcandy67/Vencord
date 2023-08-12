@@ -42,6 +42,12 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         default: true,
         restartNeeded: true
+    },
+    memberListBackground: {
+        description: "Show USRBG banners in the members list",
+        type: OptionType.BOOLEAN,
+        default: true,
+        restartNeeded: true
     }
 });
 
@@ -77,6 +83,16 @@ export default definePlugin({
                     replace: "$self.voiceBackgroundHook($1),"
                 }
             ]
+        },
+        {
+            find: "\"avatar\",\"name\"",
+            predicate: () => settings.store.memberListBackground,
+            replacement: [
+                {
+                    match: /(forwardRef\(\(function\((\i)(.+?"listitem",))(innerRef)/,
+                    replace: "$1style:$self.memberListBannerHook($2),$4"
+                }
+            ]
         }
     ],
 
@@ -86,17 +102,26 @@ export default definePlugin({
         );
     },
 
-    voiceBackgroundHook({ className, participantUserId }: any) {
-        if (className.includes("tile-")) {
-            if (data[participantUserId]) {
-                return {
-                    backgroundImage: `url(${data[participantUserId]})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat"
-                };
-            }
+    memberListBannerHook(props: any) {
+        try {
+            const userId = props.avatar._owner.pendingProps.user.id;
+            if (!data[userId]) return;
+            return {
+                "--mlbg": `url("${data[userId]}")`
+            };
+        } catch (e) {
+            console.error(e);
         }
+    },
+
+    voiceBackgroundHook({ className, participantUserId }: any) {
+        if (!data[participantUserId] || !className.includes("tile-")) return;
+        return {
+            backgroundImage: `url(${data[participantUserId]})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat"
+        };
     },
 
     useBannerHook({ displayProfile, user }: any) {

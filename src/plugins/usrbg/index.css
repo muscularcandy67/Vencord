@@ -1,4 +1,4 @@
-:is([class*="userProfile"], [class*="userPopout"]) [class*="bannerPremium"] {
+:is([class^="userProfile"], [class^="userPopout"]) [class*="bannerPremium"] {
     background: center / cover no-repeat;
 }
 
@@ -7,6 +7,25 @@
     top: 76px;
 }
 
-[style*="background-image"] [class*="background-"] {
+[style^="background-image"] [class^="background-"] {
     background-color: transparent !important;
+}
+
+[style^="--mlbg"]::before {
+    opacity: 0.8;
+    -webkit-mask-image: linear-gradient(to right, transparent 20%, #fff);
+    mask-image: linear-gradient(to right, transparent 20%, #fff);
+    width: 100%;
+    height: 100%;
+    content: "";
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    border-radius: 4px;
+    background-image: var(--mlbg);
+}
+
+[class^="memberInner-"] {
+    z-index: 1;
+    position: relative;
 }
