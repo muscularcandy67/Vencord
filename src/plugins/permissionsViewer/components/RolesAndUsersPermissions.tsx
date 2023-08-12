@@ -21,7 +21,7 @@ import { Flex } from "@components/Flex";
 import { InfoIcon, OwnerCrownIcon } from "@components/Icons";
 import { getUniqueUsername } from "@utils/discord";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { ContextMenu, FluxDispatcher, GuildMemberStore, Menu, PermissionsBits, ScrollerThin, Text, Tooltip, useEffect, UserStore, useState, useStateFromStores } from "@webpack/common";
+import { ContextMenu, FluxDispatcher, GuildMemberStore, Menu, PermissionsBits, ScrollerThin, Switch, Text, Tooltip, useEffect, UserStore, useState, useStateFromStores } from "@webpack/common";
 import type { Guild } from "discord-types/general";
 
 import { settings } from "..";
@@ -77,6 +77,9 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
 
     const [selectedItemIndex, selectItem] = useState(0);
     const selectedItem = permissions[selectedItemIndex];
+
+    const [hideIrrelevantPermissions, setHideIrrelevantPermissions] =
+        useState(settings.store.defaultHideIrrelevantPermissions);
 
     return (
         <ModalRoot
@@ -155,7 +158,18 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                                 );
                             })}
                         </ScrollerThin>
-                        <ScrollerThin className={cl("perms-perms")}>
+                        <ScrollerThin className={cl(
+                            "perms-perms",
+                            hideIrrelevantPermissions ? "perms-perms-hide-irrelevant-permissions" : undefined
+                        )}>
+                            <div className={cl("perms-perms-settings")}>
+                                <Switch className={cl("perms-perms-settings-setting")}
+                                    key="vc-permviewer-hide-irrelevant-permissions"
+                                    value={hideIrrelevantPermissions}
+                                    onChange={v => setHideIrrelevantPermissions(v)}
+                                    hideBorder={true}
+                                >Hide irrelevant permissions</Switch>
+                            </div>
                             {Object.entries(PermissionsBits).map(([permissionName, bit]) => {
                                 const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
                                 const permissionState = permissions !== undefined
