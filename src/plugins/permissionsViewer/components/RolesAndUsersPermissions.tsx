@@ -21,12 +21,12 @@ import { Flex } from "@components/Flex";
 import { InfoIcon, OwnerCrownIcon } from "@components/Icons";
 import { getUniqueUsername } from "@utils/discord";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { ContextMenu, FluxDispatcher, GuildMemberStore, Menu, PermissionsBits, Text, Tooltip, useEffect, UserStore, useState, useStateFromStores } from "@webpack/common";
+import { ContextMenu, FluxDispatcher, GuildMemberStore, Menu, PermissionsBits, ScrollerThin, Switch, Text, Tooltip, useEffect, UserStore, useState, useStateFromStores } from "@webpack/common";
 import type { Guild } from "discord-types/general";
 
 import { settings } from "..";
 import { cl, getPermissionDescription, getPermissionString } from "../utils";
-import { PermissionAllowedIcon, PermissionDefaultIcon, PermissionDeniedIcon } from "./icons";
+import { PermissionIcon, PermissionState } from "./icons";
 
 export const enum PermissionType {
     Role = 0,
@@ -78,6 +78,9 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
     const [selectedItemIndex, selectItem] = useState(0);
     const selectedItem = permissions[selectedItemIndex];
 
+    const [hideIrrelevantPermissions, setHideIrrelevantPermissions] =
+        useState(settings.store.defaultHideIrrelevantPermissions);
+
     return (
         <ModalRoot
             {...modalProps}
@@ -97,7 +100,7 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
 
                 {selectedItem && (
                     <div className={cl("perms-container")}>
-                        <div className={cl("perms-list")}>
+                        <ScrollerThin className={cl("perms-list")}>
                             {permissions.map((permission, index) => {
                                 const user = UserStore.getUser(permission.id ?? "");
                                 const role = guild.roles[permission.id ?? ""];
@@ -154,35 +157,47 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                                     </button>
                                 );
                             })}
-                        </div>
-                        <div className={cl("perms-perms")}>
-                            {Object.entries(PermissionsBits).map(([permissionName, bit]) => (
-                                <div className={cl("perms-perms-item")}>
-                                    <div className={cl("perms-perms-item-icon")}>
-                                        {(() => {
-                                            const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
+                        </ScrollerThin>
+                        <ScrollerThin className={cl(
+                            "perms-perms",
+                            hideIrrelevantPermissions ? "perms-perms-hide-irrelevant-permissions" : undefined
+                        )}>
+                            <div className={cl("perms-perms-settings")}>
+                                <Switch className={cl("perms-perms-settings-setting")}
+                                    key="vc-permviewer-hide-irrelevant-permissions"
+                                    value={hideIrrelevantPermissions}
+                                    onChange={v => setHideIrrelevantPermissions(v)}
+                                    hideBorder={true}
+                                >Hide irrelevant permissions</Switch>
+                            </div>
+                            {Object.entries(PermissionsBits).map(([permissionName, bit]) => {
+                                const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
+                                const permissionState = permissions !== undefined
+                                    ? permissions === 0n ? PermissionState.Default
+                                        : (permissions & bit) === bit ? PermissionState.Allow : PermissionState.Deny
+                                    : undefined;
+                                const permissionOverwriteState = overwriteAllow !== undefined || overwriteDeny !== undefined
+                                    ? overwriteAllow !== undefined && (overwriteAllow & bit) === bit ? PermissionState.Allow
+                                        : overwriteDeny !== undefined && (overwriteDeny & bit) === bit ? PermissionState.Deny
+                                            : PermissionState.Default
+                                    : undefined;
+                                const computedPermissionState = permissionOverwriteState ?? permissionState ?? PermissionState.Default;
 
-                                            if (permissions)
-                                                return (permissions & bit) === bit
-                                                    ? PermissionAllowedIcon()
-                                                    : PermissionDeniedIcon();
-
-                                            if (overwriteAllow && (overwriteAllow & bit) === bit)
-                                                return PermissionAllowedIcon();
-                                            if (overwriteDeny && (overwriteDeny & bit) === bit)
-                                                return PermissionDeniedIcon();
-
-                                            return PermissionDefaultIcon();
-                                        })()}
-                                    </div>
+                                return (<div className={cl("perms-perms-item")}
+                                    data-vc-permviewer-permission-state={permissionState}
+                                    data-vc-permviewer-permission-overwrite-state={permissionOverwriteState}
+                                >
+                                    <div className={cl("perms-perms-item-icon")}><PermissionIcon
+                                        permissionState={computedPermissionState}
+                                    /></div>
                                     <Text variant="text-md/normal">{getPermissionString(permissionName)}</Text>
 
-                                    <Tooltip text={getPermissionDescription(permissionName) || "No Description"}>
-                                        {props => <InfoIcon {...props} />}
-                                    </Tooltip>
-                                </div>
-                            ))}
-                        </div>
+                                    <Tooltip text={getPermissionDescription(permissionName) || "No Description"}>{props =>
+                                        <InfoIcon {...props} />
+                                    }</Tooltip>
+                                </div>);
+                            })}
+                        </ScrollerThin>
                     </div>
                 )}
             </ModalContent>

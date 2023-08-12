@@ -53,6 +53,8 @@
 }
 
 .vc-permviewer-perms-container {
+    box-sizing: border-box;
+    height: 100%;
     display: grid;
     grid-template-columns: 1fr 2fr;
     grid-template-areas: "list permissions";
@@ -112,37 +114,49 @@
 }
 
 .vc-permviewer-perms-perms {
+    --vc-permviewer-perms-perms-inner-margin: 10px;
+    --vc-permviewer-perms-perms-item-outer-margin: 10px;
+    --vc-permviewer-perms-perms-item-border-width: 2px;
+    --vc-permviewer-perms-perms-item-icon-inner-margin: 5px;
+
     grid-area: permissions;
     display: flex;
     flex-direction: column;
     margin-left: 5px;
 }
 
+.vc-permviewer-perms-perms-settings-setting {
+    margin: 0;
+    padding: var(--vc-permviewer-perms-perms-item-outer-margin) var(--vc-permviewer-perms-perms-inner-margin);
+    border-bottom: var(--vc-permviewer-perms-perms-item-border-width) solid var(--background-modifier-active);
+}
+
 .vc-permviewer-perms-perms-item {
     position: relative;
     display: flex;
     align-items: center;
-    padding: 10px;
-    border-bottom: 2px solid var(--background-modifier-active);
+    padding: var(--vc-permviewer-perms-perms-item-outer-margin) var(--vc-permviewer-perms-perms-inner-margin);
+    border-bottom: var(--vc-permviewer-perms-perms-item-border-width) solid var(--background-modifier-active);
 }
 
-.vc-permviewer-perms-perms-item:last-child {
-    border: 0;
+.vc-permviewer-perms-perms-hide-irrelevant-permissions > .vc-permviewer-perms-perms-item:where(:not([data-vc-permviewer-permission-state]), [data-vc-permviewer-permission-state="default"], [data-vc-permviewer-permission-state="deny"]):where(:not([data-vc-permviewer-permission-overwrite-state]), [data-vc-permviewer-permission-overwrite-state="default"]) {
+    display: none;
 }
 
 .vc-permviewer-perms-perms-item-icon {
     border: 1px solid var(--background-modifier-selected);
     width: 24px;
     height: 24px;
-    margin-right: 5px;
+    margin-right: var(--vc-permviewer-perms-perms-item-icon-inner-margin);
 }
 
 .vc-permviewer-perms-perms-item .vc-info-icon {
     color: var(--interactive-muted);
     cursor: pointer;
     position: absolute;
-    right: 0;
+    right: var(--vc-permviewer-perms-perms-inner-margin);
     scale: 0.9;
+    margin-left: var(--vc-permviewer-perms-perms-item-icon-inner-margin);
     transition: color ease-in 0.1s;
 }
 
