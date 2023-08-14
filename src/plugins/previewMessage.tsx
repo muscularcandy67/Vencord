@@ -20,8 +20,7 @@ import { sendBotMessage } from "@api/Commands";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Button, ButtonLooks, ButtonWrapperClasses, DraftStore, SelectedChannelStore, Tooltip } from "@webpack/common";
-const DRAFT_TYPE = 0;
+import { Button, ButtonLooks, ButtonWrapperClasses, DraftStore, SelectedChannelStore, Tooltip, UserStore } from "@webpack/common";
 
 interface Props {
     type: {
@@ -29,10 +28,16 @@ interface Props {
     };
 }
 
+function getDraft(channelId: string) {
+    const draft = DraftStore.getDraft(channelId, 0);
+    return draft;
+}
+
 export function PreviewButton(chatBoxProps: Props) {
     if (chatBoxProps.type.analyticsName !== "normal") return null;
     const channelId = SelectedChannelStore.getChannelId();
-    const draft = DraftStore.getDraft(channelId, DRAFT_TYPE);
+    const draft = getDraft(channelId);
+
     if (!draft) return null;
 
     return (
@@ -40,10 +45,14 @@ export function PreviewButton(chatBoxProps: Props) {
             {tooltipProps => (
                 <Button
                     {...tooltipProps}
-                    onClick={
-                        () =>
-                            sendBotMessage(channelId, { content: draft, })
-                    }
+                    onClick={() =>
+                        sendBotMessage(
+                            channelId,
+                            {
+                                content: getDraft(channelId),
+                                author: UserStore.getCurrentUser()
+                            }
+                        )}
                     size=""
                     look={ButtonLooks.BLANK}
                     innerClassName={ButtonWrapperClasses.button}
