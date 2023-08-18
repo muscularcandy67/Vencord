@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export const enum PermissionState {
-    Deny = "deny",
-    Default = "default",
-    Allow = "allow",
-}
+import { PermissionValue } from "../utils";
 
-export function PermissionDeniedIcon() {
+export function PermissionDeniedIcon({ ...props }: {} & React.SVGProps<SVGSVGElement>) {
     return (
-        <svg
+        <svg {...props}
             height="24"
             width="24"
             viewBox="0 0 24 24"
@@ -35,9 +31,9 @@ export function PermissionDeniedIcon() {
     );
 }
 
-export function PermissionDefaultIcon() {
+export function PermissionPassthroughIcon({ ...props }: {} & React.SVGProps<SVGSVGElement>) {
     return (
-        <svg
+        <svg {...props}
             height="24"
             width="24"
             viewBox="0 0 16 16"
@@ -50,9 +46,9 @@ export function PermissionDefaultIcon() {
     );
 }
 
-export function PermissionAllowedIcon() {
+export function PermissionAllowedIcon({ ...props }: {} & React.SVGProps<SVGSVGElement>) {
     return (
-        <svg
+        <svg {...props}
             height="24"
             width="24"
             viewBox="0 0 24 24"
@@ -63,10 +59,12 @@ export function PermissionAllowedIcon() {
     );
 }
 
-export function PermissionIcon({ permissionState }: { permissionState: PermissionState; }) {
-    switch (permissionState) {
-        case PermissionState.Deny: return PermissionDeniedIcon();
-        case PermissionState.Allow: return PermissionAllowedIcon();
-        case PermissionState.Default: return PermissionDefaultIcon();
+export function PermissionValueIcon({ permissionValue, ...props }: {
+    permissionValue: PermissionValue;
+} & React.SVGProps<SVGSVGElement>) {
+    switch (permissionValue) {
+        case PermissionValue.Deny: return PermissionDeniedIcon(props);
+        case PermissionValue.Allow: return PermissionAllowedIcon(props);
+        case PermissionValue.Passthrough: return PermissionPassthroughIcon(props);
     }
 }
