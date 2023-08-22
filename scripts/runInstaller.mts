@@ -19,10 +19,12 @@
 import "./checkNodeVersion.js";
 
 import { execFileSync, execSync } from "child_process";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { createWriteStream } from "fs";
+import { access, constants as fsConstants, mkdir, readFile, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
+import type * as streamWeb from "stream/web";
 import { fileURLToPath } from "url";
 
 const BASE_URL = "https://github.com/Vencord/Installer/releases/latest/download/";
@@ -49,23 +51,43 @@ async function ensureBinary() {
     const filename = getFilename();
     console.log("Downloading " + filename);
 
-    mkdirSync(FILE_DIR, { recursive: true });
+    await mkdir(FILE_DIR, { recursive: true });
 
     const downloadName = join(FILE_DIR, filename);
     const outputFile = process.platform === "darwin"
         ? join(FILE_DIR, "VencordInstaller")
         : downloadName;
 
-    const etag = existsSync(outputFile) && existsSync(ETAG_FILE)
-        ? readFileSync(ETAG_FILE, "utf-8")
-        : null;
-
-    const res = await fetch(BASE_URL + filename, {
-        headers: {
-            "User-Agent": "Vencord (https://github.com/Vendicated/Vencord)",
-            "If-None-Match": etag
+    const etag = await (async () => {
+        try {
+            await access(outputFile, fsConstants.F_OK);
+        } catch (e) {
+            const { code, path }: Partial<{ code: string; path: string; }> = e;
+            if (e instanceof Error && code === "ENOENT" && path !== undefined) {
+                console.log("Installer not found at: %s", path);
+                return null;
+            }
+            throw e;
         }
-    });
+        try {
+            return await readFile(ETAG_FILE, "utf-8");
+        } catch (e) {
+            const { code, path }: Partial<{ code: string; path: string; }> = e;
+            if (e instanceof Error && code === "ENOENT" && path !== undefined) {
+                console.log("Installer ETag not found at: %s", path);
+                return null;
+            }
+            throw e;
+        }
+    })();
+
+    const headers: HeadersInit = {
+        "User-Agent": "Vencord (https://github.com/Vendicated/Vencord)",
+    };
+    if (etag !== null) {
+        headers["If-None-Match"] = etag;
+    }
+    const res = await fetch(BASE_URL + filename, { headers });
 
     if (res.status === 304) {
         console.log("Up to date, not redownloading!");
@@ -74,7 +96,10 @@ async function ensureBinary() {
     if (!res.ok)
         throw new Error(`Failed to download installer: ${res.status} ${res.statusText}`);
 
-    writeFileSync(ETAG_FILE, res.headers.get("etag"));
+    const resEtag = res.headers.get("etag");
+    if (resEtag === null)
+        throw new Error(`Unknown ETag for installer: ${res.status} ${res.statusText}`);
+    await writeFile(ETAG_FILE, resEtag);
 
     if (process.platform === "darwin") {
         console.log("Unzipping...");
@@ -85,7 +110,7 @@ async function ensureBinary() {
             filter: f => f.name === INSTALLER_PATH_DARWIN
         })[INSTALLER_PATH_DARWIN];
 
-        writeFileSync(outputFile, bytes, { mode: 0o755 });
+        await writeFile(outputFile, bytes, { mode: 0o755 });
 
         console.log("Overriding security policy for installer binary (this is required to run it)");
         console.log("xattr might error, that's okay");
@@ -99,8 +124,13 @@ async function ensureBinary() {
         logAndRun(`sudo spctl --add '${outputFile}' --label "Vencord Installer"`);
         logAndRun(`sudo xattr -d com.apple.quarantine '${outputFile}'`);
     } else {
+        // Type cast because `ReadableStream` is a different type.
+        const bodyWebStream = res.body as streamWeb.ReadableStream<Uint8Array> | null;
+        if (bodyWebStream === null) {
+            throw new Error(`Failed to read installer body: ${res.status} ${res.statusText}`);
+        }
         // WHY DOES NODE FETCH RETURN A WEB STREAM OH MY GOD
-        const body = Readable.fromWeb(res.body);
+        const body = Readable.fromWeb(bodyWebStream);
         await finished(body.pipe(createWriteStream(outputFile, {
             mode: 0o755,
             autoClose: true
@@ -120,6 +150,7 @@ console.log("Now running Installer...");
 
 execFileSync(installerBin, {
     stdio: "inherit",
+    encoding: "buffer",
     env: {
         ...process.env,
         VENCORD_USER_DATA_DIR: BASE_DIR,
