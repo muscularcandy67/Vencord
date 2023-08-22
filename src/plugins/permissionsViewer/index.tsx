@@ -49,12 +49,12 @@ export const settings = definePluginSettings({
             { label: "Lowest Role", value: PermissionsSortOrder.LowestRole }
         ],
     },
-    defaultHideIrrelevantPermissions: {
+    irrelevantPermissionsHiddenByDefault: {
         description: "Whether irrelevant permissions should be hidden by default in the viewer",
         type: OptionType.BOOLEAN,
         default: false,
     },
-    defaultPermissionsDropdownState: {
+    permissionsDropdownOpenByDefault: {
         description: "Whether the permissions dropdown on user popouts should be open by default",
         type: OptionType.BOOLEAN,
         default: false,
