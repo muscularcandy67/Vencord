@@ -20,7 +20,7 @@ import { sendBotMessage } from "@api/Commands";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Button, ButtonLooks, ButtonWrapperClasses, DraftStore, SelectedChannelStore, Tooltip, UserStore } from "@webpack/common";
+import { Button, ButtonLooks, ButtonWrapperClasses, DraftStore, DraftType, SelectedChannelStore, Tooltip, UserStore } from "@webpack/common";
 
 interface Props {
     type: {
@@ -28,10 +28,7 @@ interface Props {
     };
 }
 
-function getDraft(channelId: string) {
-    const draft = DraftStore.getDraft(channelId, 0);
-    return draft;
-}
+const getDraft = (channelId: string) => DraftStore.getDraft(channelId, DraftType.ChannelMessage);
 
 export function PreviewButton(chatBoxProps: Props) {
     if (chatBoxProps.type.analyticsName !== "normal") return null;
@@ -70,7 +67,7 @@ export function PreviewButton(chatBoxProps: Props) {
 
 export default definePlugin({
     name: "PreviewMessage",
-    description: "Lets you preview your message before sending it.",
+    description: "Lets you preview your message before sending it",
     authors: [Devs.Aria],
     patches: [
         {
