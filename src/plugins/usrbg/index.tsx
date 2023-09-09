@@ -96,6 +96,9 @@ export default definePlugin({
         }
     ],
 
+
+    data,
+
     settingsAboutComponent: () => {
         return (
             <Link href="https://github.com/AutumnVN/usrbg#how-to-request-your-own-usrbg-banner">CLICK HERE TO GET YOUR OWN BANNER</Link>
@@ -141,7 +144,9 @@ export default definePlugin({
         enableStyle(style);
 
         const res = await fetch(BASE_URL);
-        if (res.ok)
+        if (res.ok) {
             data = await res.json();
+            this.data = data;
+        }
     }
 });
