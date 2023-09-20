@@ -18,9 +18,9 @@
 
 import { LazyComponent } from "@utils/react";
 import { findByCode } from "@webpack";
-import { Avatar, ChannelStore, ContextMenu, FluxDispatcher, GuildStore, Menu, ReadStateStore, Text, useDrag, useDrop, useRef, UserStore, useStateFromStores } from "@webpack/common";
+import { Avatar, ChannelStore, ContextMenu, FluxDispatcher, GuildStore, Menu, Text, useDrag, useDrop, useRef, UserStore } from "@webpack/common";
 
-import { BasicChannelTabsProps, Bookmark, BookmarkFolder, Bookmarks, channelTabsSettings, ChannelTabsUtils, UseBookmark } from "../util";
+import { BasicChannelTabsProps, Bookmark, BookmarkFolder, Bookmarks, channelTabsSettings as settings, ChannelTabsUtils, UseBookmark } from "../util";
 import { NotificationDot, QuestionIcon } from "./ChannelTab";
 import { BookmarkContextMenu } from "./ContextMenus";
 
@@ -76,7 +76,7 @@ function BookmarkFolderOpenMenu(props: { bookmarks: Bookmarks, index: number, me
         {bookmark.bookmarks.map(bkm => <Menu.MenuItem
             key={`bookmark-folder-entry-${bkm.channelId}`}
             id={`bookmark-folder-entry-${bkm.channelId}`}
-            label={bkm.name}
+            label={[bkm.name, <NotificationDot channelIds={[bkm.channelId]} />]}
             icon={() => <BookmarkIcon bookmark={bkm} />}
             showIconFirst={true}
             action={() => switchChannel(bkm)}
@@ -84,28 +84,12 @@ function BookmarkFolderOpenMenu(props: { bookmarks: Bookmarks, index: number, me
     </Menu.Menu>;
 }
 
-function getNotificationsForBookmark(bookmark: Bookmark | BookmarkFolder): [number, number] {
-    const channel = (!("bookmarks" in bookmark) && channelTabsSettings.store.showNotificationIndicatorsOnBookmarks) ? ChannelStore.getChannel(bookmark.channelId) : null;
-
-    return useStateFromStores(
-        [ReadStateStore],
-        () => [
-            ReadStateStore.getUnreadCount(channel?.id) as number,
-            ReadStateStore.getMentionCount(channel?.id) as number,
-        ],
-        null,
-        // is this necessary?
-        (o, n) => o.every((v, i) => v === n[i])
-    );
-}
-
 function Bookmark(props: { bookmarks: Bookmarks, index: number, methods: UseBookmark[1]; }) {
     const { bookmarks, index, methods } = props;
     const bookmark = bookmarks[index];
+    const { bookmarkNotificationDot } = settings.use(["bookmarkNotificationDot"]);
 
     const ref = useRef<HTMLDivElement>(null);
-
-    const [unreadCount, mentionCount] = getNotificationsForBookmark(bookmark);
 
     const [, drag] = useDrag(() => ({
         type: "vc_Bookmark",
@@ -155,7 +139,10 @@ function Bookmark(props: { bookmarks: Bookmarks, index: number, methods: UseBook
     >
         <BookmarkIcon bookmark={bookmark} />
         <Text variant="text-sm/normal" className={cl("name-text")}>{bookmark.name}</Text>
-        {!("bookmarks" in bookmark) && <NotificationDot unreadCount={unreadCount} mentionCount={mentionCount} />}
+        {bookmarkNotificationDot && <NotificationDot channelIds={"bookmarks" in bookmark
+            ? bookmark.bookmarks.map(b => b.channelId)
+            : [bookmark.channelId]
+        } />}
     </div>;
 }
 

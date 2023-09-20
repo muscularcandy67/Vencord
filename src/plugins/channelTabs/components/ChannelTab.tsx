@@ -67,7 +67,15 @@ function TypingIndicator({ isTyping }: { isTyping: boolean; }) {
         : null;
 }
 
-export const NotificationDot = ({ unreadCount, mentionCount }: { unreadCount: number, mentionCount: number; }) => {
+export const NotificationDot = ({ channelIds }: { channelIds: string[]; }) => {
+    const [unreadCount, mentionCount] = useStateFromStores(
+        [ReadStateStore],
+        () => [
+            channelIds.reduce((count, channelId) => count + ReadStateStore.getUnreadCount(channelId), 0),
+            channelIds.reduce((count, channelId) => count + ReadStateStore.getMentionCount(channelId), 0),
+        ]
+    );
+
     return unreadCount > 0 ?
         <div
             data-has-mention={!!mentionCount}
@@ -117,12 +125,15 @@ function ChannelTabContent(props: ChannelTabsProps &
     const { guild, guildId, channel, channelId, compact } = props;
     const userId = UserStore.getCurrentUser()?.id;
     const recipients = channel?.recipients;
+    const {
+        noPomeloNames,
+        showChannelEmojis,
+        showStatusIndicators
+    } = settings.use(["noPomeloNames", "showChannelEmojis", "showStatusIndicators"]);
 
-    const [unreadCount, mentionCount, isTyping, status, isMobile] = useStateFromStores(
-        [ReadStateStore, TypingStore, PresenceStore],
+    const [isTyping, status, isMobile] = useStateFromStores(
+        [TypingStore, PresenceStore],
         () => [
-            ReadStateStore.getUnreadCount(channelId) as number,
-            ReadStateStore.getMentionCount(channelId) as number,
             !!((Object.keys(TypingStore.getTypingUsers(props.channelId)) as string[]).filter(id => id !== userId).length),
             PresenceStore.getStatus(recipients?.[0]) as string,
             PresenceStore.isMobileOnline(recipients?.[0]) as boolean
@@ -131,14 +142,15 @@ function ChannelTabContent(props: ChannelTabsProps &
         // is this necessary?
         (o, n) => o.every((v, i) => v === n[i])
     );
+
     if (guild) {
         if (channel)
             return <>
                 <GuildIcon guild={guild} />
                 {/* @ts-ignore */}
-                {!compact && settings.store.showChannelEmojis && channel?.iconEmoji && <ChannelEmoji channel={channel} />}
+                {!compact && showChannelEmojis && channel?.iconEmoji && <ChannelEmoji channel={channel} />}
                 {!compact && <Text className={cl("name-text")}>#{channel.name}</Text>}
-                <NotificationDot unreadCount={unreadCount} mentionCount={mentionCount} />
+                <NotificationDot channelIds={[channel.id]} />
                 <TypingIndicator isTyping={isTyping} />
             </>;
         else {
@@ -149,6 +161,9 @@ function ChannelTabContent(props: ChannelTabsProps &
                     break;
                 case "channel-browser":
                     name = i18n.Messages.GUILD_SIDEBAR_CHANNEL_BROWSER;
+                    break;
+                case "member-safety":
+                    name = i18n.Messages.MEMBER_SAFETY_CHANNEL_TITLE;
                     break;
                 case "@home":
                     name = i18n.Messages.SERVER_GUIDE;
@@ -164,7 +179,7 @@ function ChannelTabContent(props: ChannelTabsProps &
     if (channel && recipients?.length) {
         if (channel.type === ChannelTypes.DM) {
             const user = UserStore.getUser(recipients[0]) as User & { globalName: string, isPomelo(): boolean; };
-            const username = settings.store.noPomeloNames
+            const username = noPomeloNames
                 ? user.globalName ?? user.username
                 : user.isPomelo() ? user.username : user.tag;
 
@@ -172,21 +187,21 @@ function ChannelTabContent(props: ChannelTabsProps &
                 <Avatar
                     size="SIZE_24"
                     src={user.getAvatarURL(guildId, 128)}
-                    status={settings.store.showStatusIndicators ? status : undefined}
+                    status={showStatusIndicators ? status : undefined}
                     isTyping={isTyping}
                     isMobile={isMobile}
                 />
                 {!compact && <Text className={cl("name-text")} data-pomelo={user.isPomelo()}>
                     {username}
                 </Text>}
-                <NotificationDot unreadCount={unreadCount} mentionCount={mentionCount} />
-                {!settings.store.showStatusIndicators && <TypingIndicator isTyping={isTyping} />}
+                <NotificationDot channelIds={[channel.id]} />
+                {!showStatusIndicators && <TypingIndicator isTyping={isTyping} />}
             </>;
         } else { // Group DM
             return <>
                 <ChannelIcon channel={channel} />
                 {!compact && <Text className={cl("name-text")}>{channel?.name || i18n.Messages.GROUP_DM}</Text>}
-                <NotificationDot unreadCount={unreadCount} mentionCount={mentionCount} />
+                <NotificationDot channelIds={[channel.id]} />
                 <TypingIndicator isTyping={isTyping} />
             </>;
         }
