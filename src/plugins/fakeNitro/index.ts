@@ -27,7 +27,7 @@ import definePlugin, { OptionType } from "@utils/types";
 import { findByCodeLazy, findByPropsLazy, findLazy, findStoreLazy } from "@webpack";
 import { ChannelStore, EmojiStore, FluxDispatcher, Parser, PermissionStore, UserStore } from "@webpack/common";
 import type { Message } from "discord-types/general";
-import { applyPalette, GIFEncoder, quantize } from "gifenc";
+import { applyPalette, GIFEncoder, quantize } from "@utils/gifenc";
 import type { ReactElement, ReactNode } from "react";
 
 const DRAFT_TYPE = 0;

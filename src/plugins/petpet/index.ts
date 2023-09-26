@@ -21,7 +21,7 @@ import { Devs } from "@utils/constants";
 import { makeLazy } from "@utils/lazy";
 import definePlugin from "@utils/types";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { applyPalette, GIFEncoder, quantize } from "gifenc";
+import { applyPalette, GIFEncoder, quantize } from "@utils/gifenc";
 
 const DRAFT_TYPE = 0;
 const DEFAULT_DELAY = 20;
