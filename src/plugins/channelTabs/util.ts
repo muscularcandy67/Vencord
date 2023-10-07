@@ -51,6 +51,11 @@ export interface BookmarkFolder {
     name: string;
     iconColor: string;
 }
+export interface BookmarkProps {
+    bookmarks: Bookmarks,
+    index: number,
+    methods: UseBookmark[1];
+}
 export type Bookmarks = (Bookmark | BookmarkFolder)[];
 export type UseBookmark = [Bookmarks | undefined, {
     addBookmark: (bookmark: Omit<Bookmark, "name"> & { name?: string; }, folderIndex?: number) => void;
@@ -63,14 +68,14 @@ export type UseBookmark = [Bookmarks | undefined, {
 const logger = new Logger("ChannelTabs");
 
 export const bookmarkFolderColors = {
-    "Red": "var(--channeltabs-red)",
-    "Blue": "var(--channeltabs-blue)",
-    "Yellow": "var(--channeltabs-yellow)",
-    "Green": "var(--channeltabs-green)",
-    "Black": "var(--channeltabs-black)",
-    "White": "var(--channeltabs-white)",
-    "Orange": "var(--channeltabs-orange)",
-    "Pink": "var(--channeltabs-pink)"
+    Red: "var(--channeltabs-red)",
+    Blue: "var(--channeltabs-blue)",
+    Yellow: "var(--channeltabs-yellow)",
+    Green: "var(--channeltabs-green)",
+    Black: "var(--channeltabs-black)",
+    White: "var(--channeltabs-white)",
+    Orange: "var(--channeltabs-orange)",
+    Pink: "var(--channeltabs-pink)"
 } as const;
 
 export const channelTabsSettings = definePluginSettings({
@@ -148,12 +153,11 @@ let update = (save = true) => {
 
 function bookmarkPlaceholderName(bookmark: Omit<Bookmark | BookmarkFolder, "name">) {
     if ("bookmarks" in bookmark) return "Folder";
-
     // @ts-ignore
     const channel = ChannelStore.getChannel(bookmark.channelId);
+
     if (!channel) return "Bookmark";
     if (channel.name) return `#${channel.name}`;
-    // TODO: do group dm's without a name set actually not have a name or is it the particiapnts?
     if (channel.recipients) return UserStore.getUser(channel.recipients?.[0])?.username
         ?? "Unknown User";
     return "Bookmark";
@@ -232,33 +236,6 @@ function handleChannelSwitch(ch: BasicChannelTabsProps) {
     if (tab.channelId !== ch.channelId) openTabs[openTabs.indexOf(tab)] = { id: tab.id, compact: tab.compact, ...ch };
 }
 
-function handleKeybinds(e: KeyboardEvent) {
-    if (e.key === "Tab" && e.ctrlKey) {
-        const currentIndex = openTabs.findIndex(c => c.id === currentlyOpenTab);
-        const direction = e.shiftKey ? -1 : 1;
-        const maybeNewTab = currentIndex + direction;
-
-        const newTab = maybeNewTab < 0
-            ? openTabs.length + direction
-            : maybeNewTab > openTabs.length - 1
-                ? maybeNewTab - openTabs.length
-                : maybeNewTab;
-        if (!openTabs[newTab]) return logger.error("Cannot move to nonexistent tab with index " + newTab, openTabs);
-
-        moveToTab(openTabs[newTab].id);
-    }
-    // Ctrl+T is taken by discord
-    else if (["N", "n"].includes(e.key) && e.ctrlKey) {
-        createTab(openTabs.find(t => t.id === currentlyOpenTab)!);
-    }
-    else if (["W", "w"].includes(e.key) && e.ctrlKey) {
-        closeTab(currentlyOpenTab);
-    }
-    else if (["T", "t"].includes(e.key) && e.ctrlKey && e.shiftKey) {
-        reopenClosedTab();
-    }
-}
-
 function isTabSelected(id: number) {
     return id === currentlyOpenTab;
 }
@@ -304,7 +281,7 @@ function openStartupTabs(props: BasicChannelTabsProps & { userId: string; }, set
                     createTab({ channelId: props.channelId, guildId: props.guildId }, true);
                     return showToast("Failed to restore tabs", Toasts.Type.FAILURE);
                 }
-                replaceArray(openTabs);
+                replaceArray(openTabs); // empty the array
                 t.openTabs.forEach(tab => createTab(tab));
                 currentlyOpenTab = openTabs[t.openTabIndex]?.id ?? 0;
 
@@ -384,13 +361,18 @@ function useBookmarks(userId: string): UseBookmark {
             ...old,
             [userId]: bookmarks[userId]
         }));
-    }, []);
+    }, [userId]);
 
     useAwaiter(() => DataStore.get("ChannelTabs_bookmarks"), {
         fallbackValue: undefined,
         onSuccess(bookmarks: { [k: string]: Bookmarks; }) {
-            if (!bookmarks) DataStore.set("ChannelTabs_bookmarks", { [userId]: [] });
-            setBookmarks(bookmarks || { [userId]: [] });
+            if (!bookmarks) {
+                bookmarks = { [userId]: [] };
+                DataStore.set("ChannelTabs_bookmarks", { [userId]: [] });
+            }
+            if (!bookmarks[userId]) bookmarks[userId] = [];
+
+            setBookmarks(bookmarks);
         },
     });
 
@@ -405,6 +387,7 @@ function useBookmarks(userId: string): UseBookmark {
             if (typeof folderIndex === "number")
                 (bookmarks[userId][folderIndex] as BookmarkFolder).bookmarks.push({ ...bookmark, name });
             else bookmarks[userId].push({ ...bookmark, name });
+
             setBookmarks({
                 ...bookmarks
             });
@@ -416,6 +399,7 @@ function useBookmarks(userId: string): UseBookmark {
                 iconColor: bookmarkFolderColors.Black,
                 bookmarks: []
             });
+
             setBookmarks({
                 ...bookmarks
             });
@@ -435,8 +419,10 @@ function useBookmarks(userId: string): UseBookmark {
             if (index < 0 || index > (bookmarks[userId].length - 1))
                 return logger.error("Attempted to delete bookmark at index " + index, bookmarks);
 
-            if (typeof folderIndex === "number") (bookmarks[userId][folderIndex] as BookmarkFolder).bookmarks.splice(index, 1);
+            if (typeof folderIndex === "number")
+                (bookmarks[userId][folderIndex] as BookmarkFolder).bookmarks.splice(index, 1);
             else bookmarks[userId].splice(index, 1);
+
             setBookmarks({
                 ...bookmarks
             });
@@ -447,6 +433,7 @@ function useBookmarks(userId: string): UseBookmark {
 
             const firstItem = bookmarks[userId].splice(index1, 1)[0];
             bookmarks[userId].splice(index2, 0, firstItem);
+
             setBookmarks({
                 ...bookmarks
             });
@@ -458,6 +445,6 @@ function useBookmarks(userId: string): UseBookmark {
 
 export const ChannelTabsUtils = {
     bookmarkPlaceholderName, closeOtherTabs, closeTab, closedTabs, closeTabsToTheRight, createTab,
-    handleChannelSwitch, handleKeybinds, isTabSelected, moveDraggedTabs, moveToTab, openTabHistory, openTabs,
+    handleChannelSwitch, isTabSelected, moveDraggedTabs, moveToTab, openTabHistory, openTabs,
     openStartupTabs, reopenClosedTab, saveTabs, setUpdaterFunction, switchChannel, toggleCompactTab, useBookmarks
 };

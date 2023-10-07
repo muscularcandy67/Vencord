@@ -23,12 +23,12 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { ChannelStore, Menu, UserStore } from "@webpack/common";
-import { Channel, Message } from "discord-types/general/index.js";
+import { Channel, Message } from "discord-types/general";
 
 import ChannelsTabsContainer from "./components/ChannelTabsContainer";
 import { BasicChannelTabsProps, channelTabsSettings, ChannelTabsUtils } from "./util";
 
-const channelMentionContextMenuPatch: NavContextMenuPatchCallback = (children, props) =>
+const contextMenuPatch: NavContextMenuPatchCallback = (children, props) =>
     () => {
         if (!props) return;
         const { channel, messageId }: { channel: Channel, messageId?: string; } = props;
@@ -43,25 +43,6 @@ const channelMentionContextMenuPatch: NavContextMenuPatchCallback = (children, p
                         guildId: channel.guild_id,
                         channelId: channel.id
                     }, true, messageId)}
-                />
-            );
-    };
-
-const channelContextMenuPatch: NavContextMenuPatchCallback = (children, props) =>
-    () => {
-        if (!props) return;
-        const { channel }: { channel: Channel; } = props;
-        const group = findGroupChildrenByChildId("channel-copy-link", children);
-        if (group)
-            group.push(
-                <Menu.MenuItem
-                    label="Open in New Tab"
-                    id="open-link-in-tab"
-                    key="open-link-in-tab"
-                    action={() => ChannelTabsUtils.createTab({
-                        guildId: channel.guild_id,
-                        channelId: channel.id
-                    }, true)}
                 />
             );
     };
@@ -117,20 +98,20 @@ export default definePlugin({
     settings: channelTabsSettings,
 
     start() {
-        addContextMenuPatch("channel-mention-context", channelMentionContextMenuPatch);
-        addContextMenuPatch("channel-context", channelContextMenuPatch);
+        addContextMenuPatch("channel-mention-context", contextMenuPatch);
+        addContextMenuPatch("channel-context", contextMenuPatch);
     },
 
     stop() {
-        removeContextMenuPatch("channel-mention-context", channelContextMenuPatch);
-        removeContextMenuPatch("channel-context", channelContextMenuPatch);
+        removeContextMenuPatch("channel-mention-context", contextMenuPatch);
+        removeContextMenuPatch("channel-context", contextMenuPatch);
     },
 
     containerHeight: 0,
 
     render({ currentChannel, children }: {
         currentChannel: BasicChannelTabsProps,
-        children: JSX.Element; // original children passed by discord
+        children: JSX.Element;
     }) {
         const id = UserStore.getCurrentUser()?.id;
         return <>
@@ -149,31 +130,6 @@ export default definePlugin({
         };
         ChannelTabsUtils.createTab(tab, false, message.id);
     },
-
-    // settingsAboutComponent: () => {
-    //     // @ts-ignore
-    //     const { FormTitle, FormSection, FormText, KeyCombo } = Forms;
-    //     return <>
-    //         <FormTitle tag="h3">Keybinds</FormTitle>
-    //         <Flex flexDirection="row">
-    //             <FormSection>
-    //                 <FormTitle>Switch between tabs</FormTitle>
-    //                 <KeyCombo shortcut="mod+tab" />
-    //                 <KeyCombo shortcut="mod+shift+tab" />
-    //             </FormSection>
-    //             <FormSection>
-    //                 <FormTitle>Open and close tabs</FormTitle>
-    //                 <KeyCombo shortcut="mod+n" />
-    //                 <KeyCombo shortcut="mod+w" />
-    //             </FormSection>
-    //             <FormSection>
-    //                 <Forms.FormTitle>Reopen a recently closed tab</Forms.FormTitle>
-    //                 <KeyCombo shortcut="mod+shift+t" />
-    //             </FormSection>
-    //         </Flex>
-    //         <FormText>You can also Ctrl+click on the Jump button of a search result to open it in a new tab</FormText>
-    //     </>;
-    // },
 
     util: ChannelTabsUtils,
 });

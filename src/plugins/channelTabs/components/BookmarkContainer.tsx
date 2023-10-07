@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { closeModal, openModal } from "@utils/modal.jsx";
-import { Avatar, ChannelStore, ContextMenu, FluxDispatcher, GuildStore, Menu, Text, useDrag, useDrop, useEffect, useRef, UserStore } from "@webpack/common";
+import { classes } from "@utils/misc";
+import { closeModal, openModal } from "@utils/modal";
+import { Avatar, ChannelStore, ContextMenu, FluxDispatcher, GuildStore, i18n, Menu, ReadStateStore, Text, Tooltip, useDrag, useDrop, useEffect, useRef, UserStore } from "@webpack/common";
 
-import { BasicChannelTabsProps, Bookmark, BookmarkFolder, Bookmarks, channelTabsSettings as settings, ChannelTabsUtils, UseBookmark } from "../util";
+import { BasicChannelTabsProps, Bookmark, BookmarkFolder, BookmarkProps, channelTabsSettings as settings, ChannelTabsUtils } from "../util";
 import { NotificationDot } from "./ChannelTab";
-import { BookmarkContextMenu, EditModal } from "./ContextMenus";
+import { BookmarkContextMenu, EditModal, ReadStateUtils } from "./ContextMenus";
 
 const { switchChannel, useBookmarks } = ChannelTabsUtils;
 const cl = (name: string) => `vc-channeltabs-${name}`;
@@ -80,9 +81,10 @@ function BookmarkIcon({ bookmark }: { bookmark: Bookmark | BookmarkFolder; }) {
     return <QuestionIcon />;
 }
 
-function BookmarkFolderOpenMenu(props: { bookmarks: Bookmarks, index: number, methods: UseBookmark[1]; }) {
+function BookmarkFolderOpenMenu(props: BookmarkProps) {
     const { bookmarks, index, methods } = props;
     const bookmark = bookmarks[index] as BookmarkFolder;
+    const { bookmarkNotificationDot } = settings.use(["bookmarkNotificationDot"]);
 
     return <Menu.Menu
         navId="bookmark-folder-menu"
@@ -92,57 +94,74 @@ function BookmarkFolderOpenMenu(props: { bookmarks: Bookmarks, index: number, me
         {bookmark.bookmarks.map((bkm, i) => <Menu.MenuItem
             key={`bookmark-folder-entry-${bkm.channelId}`}
             id={`bookmark-folder-entry-${bkm.channelId}`}
-            label={<span style={{ display: "flex", flexDirection: "row", gap: "0.25rem" }}>
-                {bkm.name}<NotificationDot channelIds={[bkm.channelId]} />
-            </span>}
+            label={
+                <div style={{ display: "flex", alignItems: "center", "gap": "0.25rem" }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {bkm.name}
+                    </span>
+                    {bookmarkNotificationDot && <NotificationDot channelIds={[bkm.channelId]} />}
+                </div>
+            }
             icon={() => <BookmarkIcon bookmark={bkm} />}
             showIconFirst={true}
             action={() => switchChannel(bkm)}
 
-            children={[<Menu.MenuItem
-                key="edit-bookmark"
-                id="edit-bookmark"
-                label="Edit Bookmark"
-                action={() => {
-                    const key = openModal(modalProps =>
-                        <EditModal
-                            modalProps={modalProps}
-                            bookmark={bkm}
-                            onSave={name => {
-                                const newBookmarks = [...bookmark.bookmarks];
-                                newBookmarks[i].name = name;
-                                methods.editBookmark(index, { bookmarks: newBookmarks });
-                                closeModal(key);
-                            }}
-                        />
-                    );
-                }}
-            />,
-            <Menu.MenuItem
-                key="delete-bookmark"
-                id="delete-bookmark"
-                label="Delete Bookmark"
-                action={() => {
-                    methods.deleteBookmark(i, index);
-                }}
-            />,
-            <Menu.MenuItem
-                key="remove-bookmark-from-folder"
-                id="remove-bookmark-from-folder"
-                label="Remove Bookmark from Folder"
-                action={() => {
-                    const newBookmarks = [...bookmark.bookmarks];
-                    newBookmarks.splice(i, 1);
+            children={[
+                (bookmarkNotificationDot && <Menu.MenuGroup>
+                    <Menu.MenuItem
+                        key="mark-as-read"
+                        id="mark-as-read"
+                        label={i18n.Messages.MARK_AS_READ}
+                        disabled={!ReadStateStore.hasUnread(bkm.channelId)}
+                        action={() => ReadStateUtils.markAsRead(ChannelStore.getChannel(bkm.channelId))}
+                    />
+                </Menu.MenuGroup>),
+                <Menu.MenuGroup>
+                    <Menu.MenuItem
+                        key="edit-bookmark"
+                        id="edit-bookmark"
+                        label="Edit Bookmark"
+                        action={() => {
+                            const key = openModal(modalProps =>
+                                <EditModal
+                                    modalProps={modalProps}
+                                    bookmark={bkm}
+                                    onSave={name => {
+                                        const newBookmarks = [...bookmark.bookmarks];
+                                        newBookmarks[i].name = name;
+                                        methods.editBookmark(index, { bookmarks: newBookmarks });
+                                        closeModal(key);
+                                    }}
+                                />
+                            );
+                        }}
+                    />
+                    <Menu.MenuItem
+                        key="delete-bookmark"
+                        id="delete-bookmark"
+                        label="Delete Bookmark"
+                        action={() => {
+                            methods.deleteBookmark(i, index);
+                        }}
+                    />
+                    <Menu.MenuItem
+                        key="remove-bookmark-from-folder"
+                        id="remove-bookmark-from-folder"
+                        label="Remove Bookmark from Folder"
+                        action={() => {
+                            const newBookmarks = [...bookmark.bookmarks];
+                            newBookmarks.splice(i, 1);
 
-                    methods.addBookmark(bkm);
-                    methods.editBookmark(index, { bookmarks: newBookmarks });
-                }}
-            />]}
+                            methods.addBookmark(bkm);
+                            methods.editBookmark(index, { bookmarks: newBookmarks });
+                        }}
+                    />
+                </Menu.MenuGroup>]}
         />)}
     </Menu.Menu>;
 }
 
-function Bookmark(props: { bookmarks: Bookmarks, index: number, methods: UseBookmark[1]; }) {
+function Bookmark(props: BookmarkProps) {
     const { bookmarks, index, methods } = props;
     const bookmark = bookmarks[index];
     const { bookmarkNotificationDot } = settings.use(["bookmarkNotificationDot"]);
@@ -185,7 +204,7 @@ function Bookmark(props: { bookmarks: Bookmarks, index: number, methods: UseBook
     drag(drop(ref));
 
     return <div
-        className={cl("bookmark")}
+        className={classes(cl("bookmark"), cl("hoverable"))}
         ref={ref}
         onClick={e => "bookmarks" in bookmark
             ? ContextMenu.open(e, () => <BookmarkFolderOpenMenu {...props} />)
@@ -204,10 +223,24 @@ function Bookmark(props: { bookmarks: Bookmarks, index: number, methods: UseBook
     </div>;
 }
 
+function HorizontallyScrolling({ children, className }: React.PropsWithChildren<{ className?: string; }>) {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        ref.current!.addEventListener("wheel", e => {
+            e.preventDefault();
+            ref.current!.scrollLeft += e.deltaY;
+        });
+    }, []);
+
+    return <div className={classes(cl("scroller"), className)} ref={ref}>
+        {children}
+    </div>;
+}
+
 export default function BookmarkContainer(props: BasicChannelTabsProps & { userId: string; }) {
     const { guildId, channelId, userId } = props;
     const [bookmarks, methods] = useBookmarks(userId);
-    const ref = useRef<HTMLDivElement>(null);
+
 
     let isCurrentChannelBookmarked = false, currentChannelFolderIndex = -1;
     bookmarks?.forEach((bookmark, i) => {
@@ -220,34 +253,8 @@ export default function BookmarkContainer(props: BasicChannelTabsProps & { userI
         else if (bookmark.channelId === channelId) isCurrentChannelBookmarked = true;
     });
 
-    useEffect(() => {
-        ref.current!.addEventListener("wheel", e => {
-            e.preventDefault();
-            ref.current!.scrollLeft += e.deltaY;
-        });
-    }, []);
-
     return <div className={cl("inner-container")}>
-        <button className={cl("button")} onClick={() => isCurrentChannelBookmarked
-            ? currentChannelFolderIndex === -1
-                ? methods.deleteBookmark(
-                    bookmarks!.findIndex(b => !("bookmarks" in b) && b.channelId === channelId)
-                )
-                : methods.deleteBookmark(
-                    (bookmarks![currentChannelFolderIndex] as BookmarkFolder).bookmarks
-                        .findIndex(b => b.channelId === channelId),
-                    currentChannelFolderIndex
-                )
-            : methods.addBookmark({
-                guildId,
-                channelId
-            })}
-        >
-            <Star
-                foreground={isCurrentChannelBookmarked ? cl("bookmark-star-checked") : cl("bookmark-star")}
-            />
-        </button>
-        <div className={cl("scroller")} ref={ref}>
+        <HorizontallyScrolling className={cl("bookmarks-container")}>
             {bookmarks
                 ? bookmarks.length
                     ? bookmarks.map((_, i) =>
@@ -260,6 +267,28 @@ export default function BookmarkContainer(props: BasicChannelTabsProps & { userI
                     Loading bookmarks...
                 </Text>
             }
-        </div>
+        </HorizontallyScrolling>
+
+        <Tooltip text={isCurrentChannelBookmarked ? "Remove from Bookmarks" : "Add to Bookmarks"} position="left" >
+            {p => <button className={cl("button")} {...p} onClick={() => isCurrentChannelBookmarked
+                ? currentChannelFolderIndex === -1
+                    ? methods.deleteBookmark(
+                        bookmarks!.findIndex(b => !("bookmarks" in b) && b.channelId === channelId)
+                    )
+                    : methods.deleteBookmark(
+                        (bookmarks![currentChannelFolderIndex] as BookmarkFolder).bookmarks
+                            .findIndex(b => b.channelId === channelId),
+                        currentChannelFolderIndex
+                    )
+                : methods.addBookmark({
+                    guildId,
+                    channelId
+                })}
+            >
+                <Star
+                    foreground={isCurrentChannelBookmarked ? cl("bookmark-star-checked") : cl("bookmark-star")}
+                />
+            </button>}
+        </Tooltip>
     </div>;
 }
