@@ -65,8 +65,8 @@ export default definePlugin({
                     replace: "$self.premiumHook($1)||$&"
                 },
                 {
-                    match: /(\i)\.bannerSrc,/,
-                    replace: "$self.useBannerHook($1),"
+                    match: /(function \i\((\i)\)\{)(.{30,50},bannerSrc:)/,
+                    replace: "$1$2.bannerSrc=$self.useBannerHook($2);$3"
                 },
                 {
                     match: /\?\(0,\i\.jsx\)\(\i,{type:\i,shown/,
@@ -79,8 +79,8 @@ export default definePlugin({
             predicate: () => settings.store.voiceBackground,
             replacement: [
                 {
-                    match: /(\i)\.style,/,
-                    replace: "$self.voiceBackgroundHook($1),"
+                    match: /(function\((\i),\i\)\{)(.{20,40},style:)/,
+                    replace: "$1$2.style=$self.voiceBackgroundHook($2);$3"
                 }
             ]
         },
@@ -105,15 +105,16 @@ export default definePlugin({
         );
     },
 
-    memberListBannerHook(props: any) {
-        try {
-            const userId = props.avatar._owner.pendingProps.user.id;
-            if (!data[userId]) return;
-            return {
-                "--mlbg": `url("${data[userId]}")`
-            };
-        } catch (e) {
-            console.error(e);
+    voiceBackgroundHook({ className, participantUserId }: any) {
+        if (className.includes("tile_")) {
+            if (data[participantUserId]) {
+                return {
+                    backgroundImage: `url(${data[participantUserId]})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat"
+                };
+            }
         }
     },
 
