@@ -94,7 +94,6 @@ export function showToast(message: string, type = ToastType.MESSAGE) {
 }
 
 export const UserUtils = findByPropsLazy("getUser", "fetchCurrentUser") as { getUser: (id: string) => Promise<User>; };
-
 export const ApplicationAssetUtils = findByPropsLazy("fetchAssetIds", "getAssetImage") as {
     fetchAssetIds: (applicationId: string, e: string[]) => Promise<string[]>;
 };
