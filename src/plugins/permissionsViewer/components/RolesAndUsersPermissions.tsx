@@ -131,7 +131,7 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
 
                                 return (
                                     <button
-                                        key={role?.id ?? user?.id ?? (permission.type === PermissionType.Owner ? "@owner" : undefined)}
+                                        key={permission.id}
                                         className={cl("perms-list-item-btn")}
                                         onClick={() => selectItem(index)}
                                     >
@@ -182,24 +182,13 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                                     </button>
                                 );
                             })}
-                        </ScrollerThin>
-                        <ScrollerThin className={cl(
-                            "perms-perms",
-                            irrelevantPermissionsHidden ? "perms-perms-hide-irrelevant-permissions" : undefined
-                        )}>
-                            <div className={cl("perms-perms-settings")}>
-                                <Switch className={cl("perms-perms-settings-setting")}
-                                    key="vc-permviewer-hide-irrelevant-permissions"
-                                    value={irrelevantPermissionsHidden}
-                                    onChange={v => setIrrelevantPermissionsHidden(v)}
-                                    hideBorder={true}
-                                >Hide irrelevant permissions</Switch>
-                            </div>
-                            <div className={cl("perms-perms-items")}>
-                                {Object.entries(PermissionsBits).map(([permissionName, permissionBit]) => {
-                                    const { overwriteAllow, overwriteDeny, permissions } = selectedItem;
-                                    const permissionValue = getPermissionValue(permissionBit, permissions);
-                                    const overwriteValue = getOverwriteValue(permissionBit, overwriteAllow, overwriteDeny);
+                        </div>
+                        <div className={cl("perms-perms")}>
+                            {Object.entries(PermissionsBits).map(([permissionName, bit]) => (
+                                <div key={permissionName} className={cl("perms-perms-item")}>
+                                    <div className={cl("perms-perms-item-icon")}>
+                                        {(() => {
+                                            const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
 
                                     return irrelevantPermissionsHidden && !isPermissionValueRelevant(permissionValue) && !isOverwriteValueRelevant(overwriteValue)
                                         ? <Fragment key={permissionName} />

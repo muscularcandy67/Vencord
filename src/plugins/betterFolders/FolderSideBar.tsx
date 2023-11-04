@@ -19,7 +19,7 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { LazyComponent } from "@utils/react";
 import { find, findByPropsLazy } from "@webpack";
-import { React, useStateFromStores } from "@webpack/common";
+import { useStateFromStores } from "@webpack/common";
 
 import { ExpandedGuildFolderStore, settings } from ".";
 
@@ -33,6 +33,7 @@ export default ErrorBoundary.wrap(guildsBarProps => {
         <GuildsBar
             {...guildsBarProps}
             isBetterFolders={true}
+            betterFoldersExpandedIds={expandedFolders}
         />
     );
 
