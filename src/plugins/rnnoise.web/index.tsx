@@ -21,7 +21,7 @@ import "./styles.css";
 import { definePluginSettings } from "@api/Settings";
 import { classNameFactory } from "@api/Styles";
 import { Switch } from "@components/Switch";
-import { loadRnnoise, RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
+import { loadRnnoise, RnnoiseWorkletNode } from "@utils/web-noise-suppressor";
 import { Devs } from "@utils/constants";
 import { rnnoiseWasmSrc, rnnoiseWorkletSrc } from "@utils/dependencies";
 import { makeLazy } from "@utils/lazy";
