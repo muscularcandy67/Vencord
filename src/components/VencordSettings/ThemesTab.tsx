@@ -94,7 +94,7 @@ export function ThemeCard({ theme, enabled, onChange, onDelete, showDelete }: Th
                             }}
                         >
                             Discord Server
-                        </InviteLink>
+                        </Link>
                     )}
                 </Flex>
             }
