@@ -21,7 +21,7 @@ import "./styles.css";
 import { definePluginSettings } from "@api/Settings";
 import { classNameFactory } from "@api/Styles";
 import { Switch } from "@components/Switch";
-import { loadRnnoise, RnnoiseWorkletNode } from "@utils/web-noise-suppressor";
+import { loadRnnoise, RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
 import { Devs } from "@utils/constants";
 import { rnnoiseWasmSrc, rnnoiseWorkletSrc } from "@utils/dependencies";
 import { makeLazy } from "@utils/lazy";
@@ -108,14 +108,25 @@ const getRnnoiseWasm = makeLazy(() => {
 });
 
 const logger = new Logger("RNNoise");
-const settings = definePluginSettings({}).withPrivateSettings<{ isEnabled: boolean; }>();
+const settings = definePluginSettings({}).withPrivateSettings<{ isEnabled: boolean; isKrisp: boolean; }>();
 const setEnabled = (enabled: boolean) => {
     settings.store.isEnabled = enabled;
+    if (enabled && settings.store.isKrisp) {
+        settings.store.isKrisp = false;
+    }
+    FluxDispatcher.dispatch({ type: "AUDIO_SET_NOISE_SUPPRESSION", enabled });
+};
+
+const setKrispEnabled = (enabled: boolean) => {
+    settings.store.isKrisp = enabled;
+    if (enabled && settings.store.isEnabled) {
+        settings.store.isEnabled = false;
+    }
     FluxDispatcher.dispatch({ type: "AUDIO_SET_NOISE_SUPPRESSION", enabled });
 };
 
 function NoiseSupressionPopout() {
-    const { isEnabled } = settings.use();
+    const { isEnabled, isKrisp } = settings.use();
     const { isLoading, isError } = loadedStore.use();
     const isWorking = isEnabled && !isError;
 
@@ -124,7 +135,18 @@ function NoiseSupressionPopout() {
             <span>Noise Supression</span>
             <div style={{ flex: 1 }} />
             {isLoading && <Spinner type={SpinnerType.PulsingEllipsis} />}
-            <Switch checked={isWorking} onChange={setEnabled} disabled={isError} />
+        </div>
+        <div className={cl("popout-desc")}>
+            <div>
+                <div>
+                    <strong>Krisp</strong>
+                    <Switch checked={isKrisp} onChange={setKrispEnabled} disabled={isError} />
+                </div>
+                <div>
+                    <strong>RNNoise</strong>
+                    <Switch checked={isWorking} onChange={setEnabled} disabled={isError} />
+                </div>
+            </div>
         </div>
         <div className={cl("popout-desc")}>
             Enable AI noise suppression! Make some noise&mdash;like becoming an air conditioner, or a vending machine fan&mdash;while speaking. Your friends will hear nothing but your beautiful voice ✨
@@ -218,7 +240,7 @@ export default definePlugin({
         return dest.stream;
     },
     NoiseSupressionButton(): ReactNode {
-        const { isEnabled } = settings.use();
+        const { isEnabled, isKrisp } = settings.use();
         const { isLoading, isError } = loadedStore.use();
 
         return <Popout
@@ -234,14 +256,14 @@ export default definePlugin({
             {(props, { isShown }) => (
                 <PanelButton
                     {...props}
-                    tooltipText="Noise Suppression powered by RNNoise"
+                    tooltipText="Noise Suppression"
                     tooltipClassName={cl("tooltip")}
                     shouldShow={!isShown}
                     icon={() => <div style={{
                         color: isError ? "var(--status-danger)" : "inherit",
                         opacity: isLoading ? 0.5 : 1,
                     }}>
-                        <SupressionIcon enabled={isEnabled} />
+                        <SupressionIcon enabled={isEnabled || isKrisp} />
                     </div>}
                 />
             )}
