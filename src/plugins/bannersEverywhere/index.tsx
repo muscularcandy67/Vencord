@@ -97,26 +97,26 @@ async function refreshVisibleMembers() {
 
 export default definePlugin({
     name: "BannersEverywhere",
-    description: "Displays nitro and USRBG banners in the member list",
+    description: "Displays banners in the member list ",
     authors: [Devs.ImLvna, Devs.AutumnVN],
     settings,
     patches: [
         {
-            find: "lostPermissionTooltipText",
+            find: ".Messages.GUILD_OWNER,",
             replacement:
             {
                 // We add the banner as a property while we can still access the user id
-                match: /((\i)=\i\.user.+)(,avatar:function)/,
-                replace: "$1,banner:$self.memberListBannerHook($2)$3",
+                match: /verified:(\i).isVerifiedBot.*?name:null.*?(?=avatar:)/,
+                replace: "$&banner:$self.memberListBannerHook($1),",
             },
         },
         {
-            find: "apply(this,arguments)).handleKeyPress",
+            find: "role:\"listitem\",innerRef",
             replacement:
             {
                 // We cant access the user id here, so we take the banner property we set earlier
-                match: /(renderInner=function.+\i=)(\i)\.children/,
-                replace: "$1[$2.banner, $2.children]",
+                match: /let{avatar:\i.*?focusProps:\i.*?=(\i).*?children:\[/,
+                replace: "$&$1.banner,"
             }
         }
 
